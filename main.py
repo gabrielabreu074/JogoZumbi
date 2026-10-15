@@ -6,6 +6,7 @@ from codigo.personagem import Personagem
 from codigo.camera import Camera
 from codigo.zumbi import Zumbi
 from codigo.hud import HUD
+from codigo.item import Item
 
 pygame.init()
 
@@ -36,6 +37,9 @@ zumbis_vivos = 0
 camera = Camera()
 mapa = Mapa(tela, camera)
 personagem = Personagem(tela, mapa)
+taco_chao = Item(tela, mapa, "taco", 100, 80)
+medicamento_chao = Item(tela, mapa, "medicamento", 200, 120)
+itens_mapa = [taco_chao, medicamento_chao]
 
 zumbis = []
 
@@ -113,6 +117,8 @@ while rodando:
                 inventario_aberto = False
                 game_over = False
                 ultimo_spawn = pygame.time.get_ticks()
+                for item in itens_mapa:
+                    item.coletado = False
 
         elif evento.type == pygame.MOUSEBUTTONDOWN:
 
@@ -182,9 +188,21 @@ while rodando:
         )
 
     elif tela_atual == "jogar":
-
+        hud.atualizar(eventos)
+        if hud.slot_selecionado < len(personagem.inventario.itens):
+            item_selecionado = personagem.inventario.itens[hud.slot_selecionado]
+        else:
+            item_selecionado = None
+        personagem.item_equipado = item_selecionado
         if personagem.vivo and not game_over:
             personagem.atualizar()
+        for item in itens_mapa:
+            if personagem.retangulo.colliderect(item.retangulo) and not item.coletado:
+                if pygame.key.get_pressed()[pygame.K_e]:
+                    personagem.inventario.adicionar(item.nome)
+                    item.coletado = True
+
+
 
         if personagem.vida <= 0:
 
@@ -196,6 +214,10 @@ while rodando:
         camera.atualizar()
 
         mapa.desenhar()
+
+        for item in itens_mapa:
+            if not item.coletado:
+                item.desenhar()
 
         if personagem.vivo:
             personagem.desenhar()
@@ -216,7 +238,7 @@ while rodando:
 
                                 personagem.ultimo_ataque = pygame.time.get_ticks()
 
-                                zumbi.vida -= 10
+                                zumbi.vida -= 500
 
                             if zumbi.vida <= 0:
 
@@ -267,7 +289,8 @@ while rodando:
             hud.desenhar(
                 tela,
                 personagem.vida,
-                personagem.vida_maxima
+                personagem.vida_maxima,
+                personagem.inventario.itens
             )
 
         if inventario_aberto and personagem.vivo and not game_over:

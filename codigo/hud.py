@@ -30,7 +30,7 @@ class HUD:
                 if pygame.K_1 <= evento.key <= pygame.K_9:
                     self.slot_selecionado = evento.key - pygame.K_1
 
-    def desenhar(self, tela, vida, vida_maxima):
+    def desenhar(self, tela, vida, vida_maxima, itens):
 
         for i in range(self.total_slots):
             x = self.x_hud + i * (
@@ -73,7 +73,10 @@ class HUD:
             )
 
             tela.blit(numero, (x + 4, self.y_hud + 2))
-
+            if i < len(itens):
+                item = itens[i]
+                texto_item = self.fonte.render(item, True, (255,255,255))
+                tela.blit(texto_item, (x + 5, self.y_hud + 25))
         x_vida = self.x_hud
         y_vida = self.y_hud - 28
 

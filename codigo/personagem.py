@@ -8,6 +8,7 @@ class Personagem:
         self.mapa = mapa
         self.direcao = "direita"
         self.vivo = True
+        self.item_equipado = None
         self.area_ataque = None
         self.ultimo_ataque = 0
         self.atacando = False
@@ -105,14 +106,14 @@ class Personagem:
             self.indice_imagem = 0
             self.tempo_anterior = pygame.time.get_ticks()
 
-            if pygame.mouse.get_pressed()[0]:
-                self.atacando = True
-                self.area_ataque = self.retangulo.copy()
-                self.area_ataque = self.area_ataque.inflate(40, 40)
+        if pygame.mouse.get_pressed()[0] and self.item_equipado == "taco":
+            self.atacando = True
+            self.area_ataque = self.retangulo.copy()
+            self.area_ataque = self.area_ataque.inflate(40, 40)
 
-            else:
-                self.atacando = False
-                self.area_ataque= None
+        else:
+            self.atacando = False
+            self.area_ataque= None
 
 
     def desenhar(self):
