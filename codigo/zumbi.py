@@ -37,7 +37,7 @@ class Zumbi:
         )
 
 
-        if distancia < 50:
+        if self.retangulo.colliderect(self.seguir_personagem.retangulo):
             self.velocidade_zumbi = 0
             tempo_atual = pygame.time.get_ticks()
 
@@ -85,7 +85,27 @@ class Zumbi:
             coluna_jogador
         )
 
-
+        if celula_inicial_zumbi == celula_jogador:
+            diferenca_x = self.seguir_personagem.retangulo.centerx - self.retangulo.centerx
+            diferenca_y = self.seguir_personagem.retangulo.centery - self.retangulo.centery
+            movimento_x = 0
+            movimento_y = 0
+            if diferenca_x > 0:
+                movimento_x = 1
+            elif diferenca_x < 0:
+                movimento_x = -1
+            if diferenca_y > 0:
+                movimento_y = 1
+            elif diferenca_y < 0:
+                movimento_y = -1
+            novo_retangulo = self.retangulo.copy()
+            novo_retangulo.x += movimento_x * self.velocidade_zumbi
+            if self.mapa.pode_andar(novo_retangulo):
+                self.retangulo.x = novo_retangulo.x
+            novo_retangulo = self.retangulo.copy()
+            novo_retangulo.y += movimento_y * self.velocidade_zumbi
+            if self.mapa.pode_andar(novo_retangulo):
+                self.retangulo.y = novo_retangulo.y
         pais = {}
 
         fila = [celula_inicial_zumbi]
