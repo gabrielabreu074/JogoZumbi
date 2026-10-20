@@ -261,6 +261,7 @@ while rodando:
 
             if zumbi.vivo:
                 zumbi.desenhar()
+            zumbi.outros_zumbis = zumbis
 
         if personagem.vivo and not game_over:
 
