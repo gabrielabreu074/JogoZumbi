@@ -6,6 +6,7 @@ class Zumbi:
     def __init__(self, tela, mapa, x, y):
         self.retangulo = pygame.Rect(x, y, 20, 20)
         self.vida = 100
+        self.outros_zumbis = []
         self.vivo = True
         self.dano = 10
         self.ultimo_ataque = 0
@@ -100,11 +101,11 @@ class Zumbi:
                 movimento_y = -1
             novo_retangulo = self.retangulo.copy()
             novo_retangulo.x += movimento_x * self.velocidade_zumbi
-            if self.mapa.pode_andar(novo_retangulo):
+            if self.pode_mover(novo_retangulo):
                 self.retangulo.x = novo_retangulo.x
             novo_retangulo = self.retangulo.copy()
             novo_retangulo.y += movimento_y * self.velocidade_zumbi
-            if self.mapa.pode_andar(novo_retangulo):
+            if self.pode_mover(novo_retangulo):
                 self.retangulo.y = novo_retangulo.y
         pais = {}
 
@@ -226,7 +227,7 @@ class Zumbi:
             )
 
 
-            if self.mapa.pode_andar(novo_retangulo):
+            if self.pode_mover(novo_retangulo):
                 self.retangulo.x = novo_retangulo.x
 
 
@@ -238,8 +239,18 @@ class Zumbi:
             )
 
 
-            if self.mapa.pode_andar(novo_retangulo):
+            if self.pode_mover(novo_retangulo):
                 self.retangulo.y = novo_retangulo.y
+    def pode_mover(self, novo_retangulo):
+        if self.mapa.pode_andar(novo_retangulo) is False:
+            return False
+        for outro_zumbi in self.outros_zumbis:
+            if outro_zumbi is self or not outro_zumbi.vivo:
+                continue
+            if novo_retangulo.colliderect(outro_zumbi.retangulo):
+                return False
+        return True
+
 
 
     def seguir(self, personagem):

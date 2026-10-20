@@ -277,7 +277,7 @@ while rodando:
             ultimo_spawn = tempo
 
         for zumbi in zumbis:
-
+            zumbi.outros_zumbis = zumbis
             if personagem.vivo and not game_over and zumbi.vivo:
                 zumbi.atualizar()
 
