@@ -7,6 +7,12 @@ class Zumbi:
         self.retangulo = pygame.Rect(x, y, 20, 20)
         self.vida = 100
         self.outros_zumbis = []
+        self.folha_andando = pygame.image.load("imagens/personagem/zumbi_andando.png").convert_alpha()
+        largura_frame = self.folha_andando.get_width() // 4
+        altura_frame = self.folha_andando.get_height() // 4
+        retangulo_frame = pygame.Rect(0, 0, largura_frame, altura_frame)
+        self.primeiro_frame = self.folha_andando.subsurface(retangulo_frame)
+        self.primeiro_frame = pygame.transform.scale(self.primeiro_frame, (60,60))
         self.vivo = True
         self.dano = 10
         self.ultimo_ataque = 0
@@ -16,11 +22,8 @@ class Zumbi:
 
 
     def desenhar(self):
-        pygame.draw.rect(
-            self.tela,
-            (0, 255, 0),
-            self.retangulo
-        )
+        retangulo_sprite = self.primeiro_frame.get_rect(midbottom=self.retangulo.midbottom)
+        self.tela.blit(self.primeiro_frame, retangulo_sprite)
 
 
     def atualizar(self):
