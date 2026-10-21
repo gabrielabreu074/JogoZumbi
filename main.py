@@ -1,5 +1,7 @@
 import pygame
 import random
+from pathlib import Path
+
 
 from codigo.mapa import Mapa
 from codigo.personagem import Personagem
@@ -13,11 +15,26 @@ pygame.init()
 
 LARGURA = 1280
 ALTURA = 720
-
+pasta_sons = Path(__file__).resolve().parent / "sons"
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Jogo Zumbi")
 fundo_menu = FundoMenu(LARGURA, ALTURA)
 clock = pygame.time.Clock()
+
+som_chuva = pygame.mixer.Sound(str(pasta_sons / "chuva.wav"))
+som_vento = pygame.mixer.Sound(str(pasta_sons / "vento.wav"))
+som_clique = pygame.mixer.Sound(str(pasta_sons / "click_no_botao.wav"))
+som_transicao = pygame.mixer.Sound(str(pasta_sons / "transicao.wav"))
+
+som_chuva.set_volume(0.25)
+som_vento.set_volume(0.15)
+som_clique.set_volume(0.50)
+som_transicao.set_volume(0.40)
+
+canal_chuva = pygame.mixer.Channel(0)
+canal_vento = pygame.mixer.Channel(1)
+canal_clique = pygame.mixer.Channel(2)
+canal_transicao = pygame.mixer.Channel(3)
 
 posicoes_spawn = [
     (500, 370),
@@ -82,6 +99,9 @@ for i in range(max_zumbis):
 
     zumbi.seguir(personagem)
 
+canal_chuva.play(som_chuva, loops=-1, fade_ms=1000)
+canal_vento.play(som_vento, loops=-1, fade_ms=1000)
+
 while rodando:
     dt = clock.tick(60) / 1000.0
 
@@ -128,8 +148,13 @@ while rodando:
 
                 if botao_jogar.collidepoint(evento.pos):
                     tela_atual = "jogar"
+                    canal_clique.play(som_clique)
+                    canal_transicao.play(som_transicao)
+                    canal_chuva.fadeout(800)
+                    canal_vento.fadeout(800)
 
                 elif botao_sair.collidepoint(evento.pos):
+                    canal_clique.play(som_clique)
                     rodando = False
 
     if tela_atual == "menu":
