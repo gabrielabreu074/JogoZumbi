@@ -7,6 +7,7 @@ from codigo.camera import Camera
 from codigo.zumbi import Zumbi
 from codigo.hud import HUD
 from codigo.item import Item
+from codigo.fundo_menu import FundoMenu
 
 pygame.init()
 
@@ -15,7 +16,7 @@ ALTURA = 720
 
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Jogo Zumbi")
-
+fundo_menu = FundoMenu(LARGURA, ALTURA)
 clock = pygame.time.Clock()
 
 posicoes_spawn = [
@@ -82,6 +83,7 @@ for i in range(max_zumbis):
     zumbi.seguir(personagem)
 
 while rodando:
+    dt = clock.tick(60) / 1000.0
 
     eventos = pygame.event.get()
 
@@ -131,8 +133,8 @@ while rodando:
                     rodando = False
 
     if tela_atual == "menu":
-
-        tela.fill((0, 0, 0))
+        fundo_menu.atualizar(dt)
+        fundo_menu.desenhar(tela)
 
         titulo = fonte_do_titulo.render(
             "Zoio e os zumbis",
@@ -344,6 +346,5 @@ while rodando:
 
     pygame.display.update()
 
-    clock.tick(60)
 
 pygame.quit()
