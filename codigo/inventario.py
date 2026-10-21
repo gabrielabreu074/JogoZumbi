@@ -26,3 +26,5 @@ class Inventario:
                 f"{i + 1} - {item}", True, "White")
 
             tela.blit(texto, (250, 190 + i * 40))
+
+

@@ -316,11 +316,14 @@ class Zumbi:
             return
 
         posicao = self.imagem.get_rect(
-            midbottom=(
+            center=(
                 self.retangulo.centerx,
-                self.retangulo.bottom
+                self.retangulo.centery
             )
         )
+
+        posicao.x -= round(self.mapa.camera.camera_x)
+        posicao.y -= round(self.mapa.camera.camera_y)
 
         self.tela.blit(self.imagem, posicao)
 
@@ -343,10 +346,10 @@ class Zumbi:
         y_anterior = self.retangulo.y
 
         distancia = math.hypot(
-            self.retangulo.x
-            - self.seguir_personagem.retangulo.x,
-            self.retangulo.y
-            - self.seguir_personagem.retangulo.y
+            self.retangulo.centerx
+            - self.seguir_personagem.retangulo.centerx,
+            self.retangulo.centery
+            - self.seguir_personagem.retangulo.centery
         )
 
         if distancia < 50:
@@ -376,117 +379,124 @@ class Zumbi:
 
     def mover(self):
         tamanho_tile = self.mapa.tamanho_tile
+        personagem = self.seguir_personagem
 
-        coluna = self.retangulo.x // tamanho_tile
-        linha = self.retangulo.y // tamanho_tile
+        coluna = self.retangulo.centerx // tamanho_tile
+        linha = self.retangulo.centery // tamanho_tile
 
         coluna_jogador = (
-            self.seguir_personagem.retangulo.x
-            // tamanho_tile
+                personagem.retangulo.centerx // tamanho_tile
         )
 
         linha_jogador = (
-            self.seguir_personagem.retangulo.y
-            // tamanho_tile
+                personagem.retangulo.centery // tamanho_tile
         )
 
         inicio = (linha, coluna)
         destino = (linha_jogador, coluna_jogador)
 
-        pais = {}
-        fila = deque([inicio])
-        visitados = {inicio}
+        if inicio == destino:
+            x_alvo = personagem.retangulo.centerx
+            y_alvo = personagem.retangulo.centery
 
-        while fila:
-            atual = fila.popleft()
+        else:
+            pais = {}
+            fila = deque([inicio])
+            visitados = {inicio}
 
-            if atual == destino:
-                break
+            while fila:
+                atual = fila.popleft()
 
-            linha_atual, coluna_atual = atual
+                if atual == destino:
+                    break
 
-            vizinhos = [
-                (linha_atual - 1, coluna_atual),
-                (linha_atual + 1, coluna_atual),
-                (linha_atual, coluna_atual - 1),
-                (linha_atual, coluna_atual + 1)
-            ]
+                linha_atual, coluna_atual = atual
 
-            for vizinho in vizinhos:
-                linha_vizinho, coluna_vizinho = vizinho
+                vizinhos = [
+                    (linha_atual - 1, coluna_atual),
+                    (linha_atual + 1, coluna_atual),
+                    (linha_atual, coluna_atual - 1),
+                    (linha_atual, coluna_atual + 1)
+                ]
 
-                if not (
-                    0 <= linha_vizinho < len(self.mapa.mapa)
-                ):
-                    continue
+                for vizinho in vizinhos:
+                    linha_vizinho, coluna_vizinho = vizinho
 
-                if not (
-                    0 <= coluna_vizinho
-                    < len(self.mapa.mapa[linha_vizinho])
-                ):
-                    continue
+                    if not (
+                            0 <= linha_vizinho < len(self.mapa.mapa)
+                    ):
+                        continue
 
-                if (
-                    self.mapa.mapa[linha_vizinho][coluna_vizinho]
-                    != 1
-                ):
-                    continue
+                    if not (
+                            0 <= coluna_vizinho
+                            < len(self.mapa.mapa[linha_vizinho])
+                    ):
+                        continue
 
-                if vizinho in visitados:
-                    continue
+                    if (
+                            self.mapa.mapa[linha_vizinho][coluna_vizinho]
+                            != 1
+                    ):
+                        continue
 
-                visitados.add(vizinho)
-                pais[vizinho] = atual
-                fila.append(vizinho)
+                    if vizinho in visitados:
+                        continue
 
-        if destino == inicio or destino not in pais:
-            return
+                    visitados.add(vizinho)
+                    pais[vizinho] = atual
+                    fila.append(vizinho)
 
-        proxima_celula = destino
+            if destino not in pais:
+                return
 
-        while pais[proxima_celula] != inicio:
-            proxima_celula = pais[proxima_celula]
+            proxima_celula = destino
 
-        linha_alvo, coluna_alvo = proxima_celula
+            while pais[proxima_celula] != inicio:
+                proxima_celula = pais[proxima_celula]
 
-        x_alvo = (
-            coluna_alvo * tamanho_tile
-            + tamanho_tile // 2
+            if proxima_celula == destino:
+                x_alvo = personagem.retangulo.centerx
+                y_alvo = personagem.retangulo.centery
+
+            else:
+                linha_alvo, coluna_alvo = proxima_celula
+
+                x_alvo = (
+                        coluna_alvo * tamanho_tile
+                        + tamanho_tile // 2
+                )
+
+                y_alvo = (
+                        linha_alvo * tamanho_tile
+                        + tamanho_tile // 2
+                )
+
+        diferenca_x = x_alvo - self.retangulo.centerx
+        diferenca_y = y_alvo - self.retangulo.centery
+
+        movimento_x = max(
+            -self.velocidade_zumbi,
+            min(self.velocidade_zumbi, diferenca_x)
         )
 
-        y_alvo = (
-            linha_alvo * tamanho_tile
-            + tamanho_tile // 2
+        movimento_y = max(
+            -self.velocidade_zumbi,
+            min(self.velocidade_zumbi, diferenca_y)
         )
 
-        movimento_x = 0
-        movimento_y = 0
+        if movimento_x != 0:
+            novo_retangulo = self.retangulo.copy()
+            novo_retangulo.x += movimento_x
 
-        if x_alvo > self.retangulo.centerx:
-            movimento_x = 1
-        elif x_alvo < self.retangulo.centerx:
-            movimento_x = -1
+            if self.pode_mover(novo_retangulo):
+                self.retangulo.x = novo_retangulo.x
 
-        if y_alvo > self.retangulo.centery:
-            movimento_y = 1
-        elif y_alvo < self.retangulo.centery:
-            movimento_y = -1
+        if movimento_y != 0:
+            novo_retangulo = self.retangulo.copy()
+            novo_retangulo.y += movimento_y
 
-        novo_retangulo = self.retangulo.copy()
-        novo_retangulo.x += (
-            movimento_x * self.velocidade_zumbi
-        )
-
-        if self.pode_mover(novo_retangulo):
-            self.retangulo.x = novo_retangulo.x
-
-        novo_retangulo = self.retangulo.copy()
-        novo_retangulo.y += (
-            movimento_y * self.velocidade_zumbi
-        )
-
-        if self.mapa.pode_andar(novo_retangulo):
-            self.retangulo.y = novo_retangulo.y
+            if self.pode_mover(novo_retangulo):
+                self.retangulo.y = novo_retangulo.y
 
     def seguir(self, personagem):
         self.seguir_personagem = personagem

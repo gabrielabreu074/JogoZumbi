@@ -6,8 +6,47 @@ from codigo.personagem import Personagem
 from codigo.camera import Camera
 from codigo.zumbi import Zumbi
 from codigo.hud import HUD
+from codigo.arma import Arma
+from codigo.fundo_menu import FundoMenu
+from pathlib import Path
 
 pygame.init()
+
+if pygame.mixer.get_init() is None:
+    pygame.mixer.init()
+
+pygame.mixer.set_num_channels(16)
+pygame.mixer.set_reserved(4)
+
+pasta_sons = Path(__file__).resolve().parent / "sons"
+
+som_chuva = pygame.mixer.Sound(
+    str(pasta_sons / "chuva.wav")
+)
+
+som_vento = pygame.mixer.Sound(
+    str(pasta_sons / "vento.wav")
+)
+
+som_clique = pygame.mixer.Sound(
+    str(pasta_sons / "click_no_botao.wav")
+)
+
+som_transicao = pygame.mixer.Sound(
+    str(pasta_sons / "transicao.wav")
+)
+
+som_chuva.set_volume(0.25)
+som_vento.set_volume(0.15)
+som_clique.set_volume(0.50)
+som_transicao.set_volume(0.40)
+
+canal_chuva = pygame.mixer.Channel(0)
+canal_vento = pygame.mixer.Channel(1)
+canal_clique = pygame.mixer.Channel(2)
+canal_transicao = pygame.mixer.Channel(3)
+
+saindo = False
 
 LARGURA = 1280
 ALTURA = 720
@@ -17,6 +56,7 @@ pygame.display.set_caption("Jogo Zumbi")
 
 clock = pygame.time.Clock()
 
+fundo_menu = FundoMenu(LARGURA, ALTURA)
 posicoes_spawn = [
     (500, 370),
     (800, 250),
@@ -36,6 +76,11 @@ zumbis_vivos = 0
 camera = Camera()
 mapa = Mapa(tela, camera)
 personagem = Personagem(tela, mapa)
+arma_chao = Arma(
+    "Pistola",
+    str(Path(__file__).resolve().parent / "imagens" / "armas" / "pistola.png"),
+    130, 120
+)
 
 zumbis = []
 
@@ -43,20 +88,17 @@ camera.seguir(personagem)
 
 fonte = pygame.font.SysFont("comicsans", 30)
 
-fonte_do_titulo = pygame.font.SysFont(
-    "arial",
-    60,
-    bold=True
+caminho_fonte = (
+        Path(__file__).resolve().parent
+        / "fontes"
+        / "BebasNeue-Regular.ttf"
 )
 
-fonte_botao = pygame.font.SysFont(
-    "arial",
-    40,
-    bold=True
-)
+fonte_botao = pygame.font.Font(str(caminho_fonte), 60)
+fonte_do_titulo = pygame.font.Font(str(caminho_fonte), 100)
 
 botao_jogar = pygame.Rect(490, 280, 300, 70)
-botao_sair = pygame.Rect(490, 400, 300, 70)
+botao_sair = pygame.Rect(490, 440, 300, 70)
 
 rodando = True
 
@@ -66,6 +108,7 @@ tela_atual = "menu"
 
 inventario_aberto = False
 game_over = False
+fonte_pegar = pygame.font.Font(None, 25)
 
 for i in range(max_zumbis):
     x = posicoes_spawn[i][0]
@@ -77,28 +120,54 @@ for i in range(max_zumbis):
 
     zumbi.seguir(personagem)
 
+canal_chuva.play(som_chuva, loops=-1, fade_ms=1000)
+canal_vento.play(som_vento, loops=-1, fade_ms=1000)
+
+botao_anterior = None
+
 while rodando:
+    dt = clock.tick(60) / 1000.0
 
     eventos = pygame.event.get()
+
+    if tela_atual == "jogar" and personagem.vivo and not game_over:
+        hud.atualizar(eventos)
 
     for evento in eventos:
 
         if evento.type == pygame.QUIT:
             rodando = False
 
-        if evento.type == pygame.KEYDOWN:
+        if evento.type == pygame.KEYDOWN and tela_atual == "jogar":
 
-            if evento.key == pygame.K_i and personagem.vivo and not game_over:
-                inventario_aberto = not inventario_aberto
+            if personagem.vivo and not game_over:
+                if evento.key == pygame.K_i:
+                    inventario_aberto = not inventario_aberto
 
-            if evento.key == pygame.K_r and game_over:
+                elif evento.key == pygame.K_e and arma_chao is not None:
+                    if personagem.arma is None and arma_chao.esta_perto(personagem):
+                        personagem.arma = arma_chao
+                        personagem.inventario.adicionar(arma_chao.nome)
+                        arma_chao = None
+                        hud.slot_selecionado = 0
+
+                elif evento.key == pygame.K_r and personagem.arma is not None:
+                    if hud.slot_selecionado == 0:
+                        personagem.arma.recarregar()
+
+            elif evento.key == pygame.K_r and game_over:
 
                 personagem = Personagem(tela, mapa)
+                arma_chao = Arma(
+                    "Pistola",
+                    str(Path(__file__).resolve().parent / "imagens" / "armas" / "pistola.png"),
+                    130, 120
+                )
+                hud.slot_selecionado = 0
 
                 zumbis = []
 
                 for i in range(max_zumbis):
-
                     x = posicoes_spawn[i][0]
                     y = posicoes_spawn[i][1]
 
@@ -114,24 +183,112 @@ while rodando:
                 game_over = False
                 ultimo_spawn = pygame.time.get_ticks()
 
+
         elif evento.type == pygame.MOUSEBUTTONDOWN:
 
-            if evento.button == 1 and tela_atual == "menu":
+            if (
+
+                    evento.button == 1
+
+                    and tela_atual == "menu"
+
+                    and not saindo
+
+            ):
 
                 if botao_jogar.collidepoint(evento.pos):
+
+                    canal_clique.play(som_clique)
+
+                    canal_transicao.play(som_transicao)
+
+                    canal_chuva.fadeout(800)
+
+                    canal_vento.fadeout(800)
+
                     tela_atual = "jogar"
 
+                    ultimo_spawn = pygame.time.get_ticks()
+
+
                 elif botao_sair.collidepoint(evento.pos):
-                    rodando = False
+
+                    canal_clique.play(som_clique)
+
+                    canal_chuva.fadeout(300)
+
+                    canal_vento.fadeout(300)
+
+                    saindo = True
 
     if tela_atual == "menu":
+        fundo_menu.atualizar(dt)
+        fundo_menu.desenhar(tela)
 
-        tela.fill((0, 0, 0))
+        posicao_mouse = pygame.mouse.get_pos()
 
-        titulo = fonte_do_titulo.render(
-            "Zoio e os zumbis",
+        botao_atual = None
+
+        if botao_jogar.collidepoint(posicao_mouse):
+            botao_atual = "jogar"
+        elif botao_sair.collidepoint(posicao_mouse):
+            botao_atual = "sair"
+
+        if (
+                botao_atual is not None
+                and botao_atual != botao_anterior
+                and not saindo
+        ):
+            canal_clique.play(som_clique)
+
+        botao_anterior = botao_atual
+
+        for botao in (botao_jogar, botao_sair):
+            if botao.collidepoint(posicao_mouse):
+                efeito = pygame.Surface(
+                    botao.size, pygame.SRCALPHA
+                )
+
+                pygame.draw.rect(
+                    efeito,
+                    (0, 0, 0, 120),
+                    efeito.get_rect(),
+                    border_radius=20
+                )
+
+                tela.blit(efeito, botao.topleft)
+
+        titulo_branco = fonte_do_titulo.render(
+            "Zoio e os ",
             True,
             (255, 255, 255)
+        )
+
+        titulo_vermelho = fonte_do_titulo.render(
+            "zumbis",
+            True,
+            (250, 30, 30)
+        )
+
+        largura_total = (
+                titulo_branco.get_width()
+                + titulo_vermelho.get_width()
+        )
+
+        x_titulo = (LARGURA - largura_total) // 2
+        y_titulo = 170 - titulo_branco.get_height() // 2
+
+        tela.blit(
+            titulo_branco,
+            (x_titulo, y_titulo)
+        )
+
+        tela.blit(
+            titulo_vermelho,
+            (
+                x_titulo + titulo_branco.get_width(),
+                y_titulo
+            )
         )
 
         texto_jogar = fonte_botao.render(
@@ -144,27 +301,6 @@ while rodando:
             "Sair",
             True,
             (255, 255, 255)
-        )
-
-        pygame.draw.rect(
-            tela,
-            (45, 120, 45),
-            botao_jogar,
-            border_radius=20
-        )
-
-        pygame.draw.rect(
-            tela,
-            (150, 40, 40),
-            botao_sair,
-            border_radius=20
-        )
-
-        tela.blit(
-            titulo,
-            titulo.get_rect(
-                center=(LARGURA // 2, 170)
-            )
         )
 
         tela.blit(
@@ -187,7 +323,6 @@ while rodando:
             personagem.atualizar()
 
         if personagem.vida <= 0:
-
             personagem.vida = 0
             personagem.vivo = False
             game_over = True
@@ -196,6 +331,17 @@ while rodando:
         camera.atualizar()
 
         mapa.desenhar()
+
+        if arma_chao is not None:
+            arma_chao.desenhar_chao(tela, camera)
+
+            if personagem.vivo and not game_over and arma_chao.esta_perto(personagem):
+                aviso = fonte_pegar.render(
+                    "E - Pegar Pistola", True, (255, 255, 255)
+                )
+                x_aviso = arma_chao.retangulo.centerx - camera.camera_x
+                y_aviso = arma_chao.retangulo.top - camera.camera_y - 18
+                tela.blit(aviso, aviso.get_rect(center=(x_aviso, y_aviso)))
 
         if personagem.vivo:
             personagem.desenhar()
@@ -209,17 +355,15 @@ while rodando:
                     if personagem.area_ataque is not None:
 
                         if personagem.area_ataque.colliderect(
-                            zumbi.retangulo
+                                zumbi.retangulo
                         ):
 
                             if pygame.time.get_ticks() - personagem.ultimo_ataque >= 500:
-
                                 personagem.ultimo_ataque = pygame.time.get_ticks()
 
                                 zumbi.vida -= 10
 
                             if zumbi.vida <= 0:
-
                                 zumbi.vida = 0
                                 zumbi.vivo = False
 
@@ -233,12 +377,11 @@ while rodando:
         tempo = pygame.time.get_ticks()
 
         if (
-            not game_over
-            and personagem.vivo
-            and zumbis_vivos < max_zumbis
-            and tempo - ultimo_spawn > inter_spawn
+                not game_over
+                and personagem.vivo
+                and zumbis_vivos < max_zumbis
+                and tempo - ultimo_spawn > inter_spawn
         ):
-
             posicao_spawn_aleat = random.choice(posicoes_spawn)
 
             zumbi = Zumbi(
@@ -264,18 +407,17 @@ while rodando:
             zumbi.outros_zumbis = zumbis
 
         if personagem.vivo and not game_over:
-
             hud.desenhar(
                 tela,
                 personagem.vida,
-                personagem.vida_maxima
+                personagem.vida_maxima,
+                personagem.arma
             )
 
         if inventario_aberto and personagem.vivo and not game_over:
             personagem.inventario.desenhar(tela)
 
         if game_over:
-
             camada = pygame.Surface(
                 (LARGURA, ALTURA)
             )
@@ -320,8 +462,9 @@ while rodando:
                 )
             )
 
-    pygame.display.update()
+    if saindo and not canal_clique.get_busy():
+        rodando = False
 
-    clock.tick(60)
+    pygame.display.update()
 
 pygame.quit()

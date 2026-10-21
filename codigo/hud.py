@@ -23,6 +23,8 @@ class HUD:
 
         self.fonte = pygame.font.SysFont("comicsans", 20)
         self.fonte_vida = pygame.font.SysFont("comicsans", 20)
+        self.fonte_nome_arma = pygame.font.SysFont("arial", 20, bold=True)
+        self.fonte_municao = pygame.font.SysFont("arial", 18)
 
     def atualizar(self, eventos):
         for evento in eventos:
@@ -30,7 +32,7 @@ class HUD:
                 if pygame.K_1 <= evento.key <= pygame.K_9:
                     self.slot_selecionado = evento.key - pygame.K_1
 
-    def desenhar(self, tela, vida, vida_maxima):
+    def desenhar(self, tela, vida, vida_maxima, arma=None):
 
         for i in range(self.total_slots):
             x = self.x_hud + i * (
@@ -134,3 +136,34 @@ class HUD:
             texto_valor,
             (barra_fundo.right + 10, y_vida)
         )
+        if arma is not None:
+            tela.blit(arma.icone, (self.x_hud + 8, self.y_hud + 20))
+
+            if self.slot_selecionado == 0:
+                self.desenhar_painel_arma(tela, arma)
+
+    def desenhar_painel_arma(self, tela, arma):
+        largura = 224
+        altura = 88
+        x = self.largura - largura - 20
+        y = self.altura - altura - 20
+
+        painel = pygame.Surface((largura, altura), pygame.SRCALPHA)
+        painel.fill((18, 20, 26, 165))
+        pygame.draw.rect(
+            painel, (220, 220, 220, 110), painel.get_rect(),
+            width=1, border_radius=8
+        )
+
+        nome = self.fonte_nome_arma.render(arma.nome, True, (255, 255, 255))
+        municao = self.fonte_municao.render(
+            f"Munição: {arma.municao}/{arma.capacidade}", True, (235, 235, 235)
+        )
+        reserva = self.fonte_municao.render(
+            f"Reserva: {arma.reserva}", True, (195, 195, 195)
+        )
+
+        painel.blit(nome, (12, 8))
+        painel.blit(municao, (12, 37))
+        painel.blit(reserva, (12, 61))
+        tela.blit(painel, (x, y))
