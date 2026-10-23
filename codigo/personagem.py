@@ -1,5 +1,7 @@
 import pygame
 from codigo.inventario import Inventario
+import os
+
 
 class Personagem:
 
@@ -38,10 +40,62 @@ class Personagem:
         ]
 
         self.indice_imagem = 0
-
         self.tempo_anterior = pygame.time.get_ticks()
+        self.tamanho_imagem = (38, 74)
+        self.esta_andando = False
+        self.velocidade_animacao = 85
+        self.indice_animacao = 0
+        self.ultimo_frame = pygame.time.get_ticks()
 
-        self.tamanho_imagem = (60, 60)
+        pasta_sprites = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "imagens", "personagem"
+        )
+
+        sprites_parado = {
+            "baixo": "zoio parado puto-1.png",
+            "esquerda": "zoio parado puto-2.png",
+            "direita": "zoio parado puto-3.png",
+            "cima": "zoio parado puto-4.png",
+        }
+
+        sprites_andando = {
+            "baixo": "zoio andando puto-1.png",
+            "cima": "zoio andando puto-2.png",
+            "esquerda": "zoio andando puto-3.png",
+            "direita": "zoio andando puto-4.png",
+        }
+
+        self.imagens_parado = {
+            direcao: self.carregar_sprite(pasta_sprites, nome)
+            for direcao, nome in sprites_parado.items()
+        }
+
+        self.imagens_andando = {
+            direcao: self.carregar_sprite(pasta_sprites, nome)
+            for direcao, nome in sprites_andando.items()
+        }
+
+        self.angulos_animacao = [0, 1, 1, 1, 0, -1, -1, -1]
+        self.alturas_animacao = [0, 1, 2, 1, 0, 1, 2, 1]
+        self.lados_animacao = [0, 1, 1, 0, 0, -1, -1, 0]
+
+        self.frames_andando = {
+            direcao: [
+                pygame.transform.rotate(imagem, angulo)
+                for angulo in self.angulos_animacao
+            ]
+            for direcao, imagem in self.imagens_andando.items()
+        }
+
+    def carregar_sprite(self, pasta, nome):
+        imagem = pygame.image.load(
+            os.path.join(pasta, nome)
+        ).convert_alpha()
+
+        return pygame.transform.scale(
+            imagem, self.tamanho_imagem
+        )
 
     def atualizar(self):
 
@@ -62,13 +116,14 @@ class Personagem:
         if teclas[pygame.K_s]:
             movimento_y += self.velocidade
 
-        if teclas[pygame.K_a]:
+        if movimento_x < 0:
             self.direcao = "esquerda"
-
-        if teclas[pygame.K_d]:
+        elif movimento_x > 0:
             self.direcao = "direita"
-
-        esta_andando = movimento_x != 0 or movimento_y != 0
+        elif movimento_y < 0:
+            self.direcao = "cima"
+        elif movimento_y > 0:
+            self.direcao = "baixo"
 
         if movimento_x != 0 and movimento_y != 0:
             velocidade_diagonal = ((self.velocidade ** 2) / 2) ** 0.5
@@ -77,6 +132,7 @@ class Personagem:
             movimento_x = movimento_x * fator
             movimento_y = movimento_y * fator
 
+        posicao_anterior = self.retangulo.topleft
         novo_retangulo = self.retangulo.copy()
         novo_retangulo.x += movimento_x
 
@@ -89,22 +145,17 @@ class Personagem:
         if self.mapa.pode_andar(novo_retangulo):
             self.retangulo.y = novo_retangulo.y
 
-        if esta_andando:
+        self.esta_andando = (self.retangulo.topleft != posicao_anterior)
 
-            tempo_atual = pygame.time.get_ticks()
+        tempo_atual = pygame.time.get_ticks()
 
-            if tempo_atual - self.tempo_anterior >= 250:
 
-                self.indice_imagem += 1
-
-                if self.indice_imagem >= len(self.imagens):
-                    self.indice_imagem = 0
-
-                self.tempo_anterior = tempo_atual
-
+        if self.esta_andando:
+            if tempo_atual - self.ultimo_frame >= self.velocidade_animacao:
+                self.indice_animacao = (self.indice_animacao + 1) % len(self.angulos_animacao)
         else:
-            self.indice_imagem = 0
-            self.tempo_anterior = pygame.time.get_ticks()
+            self.indice_animacao = 0
+            self.ultimo_frame = tempo_atual
 
         if pygame.mouse.get_pressed()[0] and self.item_equipado == "taco":
             self.atacando = True
@@ -118,10 +169,10 @@ class Personagem:
 
     def desenhar(self):
 
-        imagem = pygame.transform.scale(
-            self.imagens[self.indice_imagem],
-            self.tamanho_imagem
-        )
+        if self.esta_andando:
+            imagem = self.frames_andando[self.direcao][self.indice_animacao]
+        else:
+            imagem = self.imagens_parado[self.direcao]
 
         posicao_x = (
             self.retangulo.centerx
@@ -130,20 +181,12 @@ class Personagem:
         )
 
         posicao_y = (
-            self.retangulo.centery
-            - imagem.get_height() // 2
-            - self.mapa.camera.camera_y
+                self.retangulo.bottom
+                - imagem.get_height()
+                - self.mapa.camera.camera_y
         )
 
-        teste = imagem
-
-        if self.direcao == "direita":
-            teste = pygame.transform.flip(imagem, True, False)
-
-        self.tela.blit(
-            teste,
-            (posicao_x, posicao_y)
-        )
+        self.tela.blit(imagem, (posicao_x, posicao_y))
 
         retangulo_tela = self.retangulo.copy()
 
