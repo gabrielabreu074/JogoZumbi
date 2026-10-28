@@ -18,6 +18,7 @@ class Personagem:
         self.vida = self.vida_maxima
         self.velocidade = 3
         self.inventario = Inventario()
+        self.arma = None
 
         self.retangulo = pygame.Rect(45, 45, 30, 30)
 

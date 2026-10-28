@@ -1,6 +1,7 @@
 import pygame
 import random
 from pathlib import Path
+import math
 
 
 from codigo.mapa import Mapa
@@ -10,6 +11,8 @@ from codigo.zumbi import Zumbi
 from codigo.hud import HUD
 from codigo.item import Item
 from codigo.fundo_menu import FundoMenu
+from codigo.arma import Arma
+from codigo.projetil import Projetil
 
 pygame.init()
 
@@ -51,15 +54,18 @@ ultimo_spawn = 0
 inter_spawn = 3000
 max_zumbis = 5
 zumbis_vivos = 0
-
 camera = Camera()
 mapa = Mapa(tela, camera)
 personagem = Personagem(tela, mapa)
+arma_chao = Arma("Pistola", str(Path(__file__).resolve().parent / "imagens" / "armas" / "pistola.png" ), 130, 120)
 taco_chao = Item(tela, mapa, "taco", 100, 80)
 medicamento_chao = Item(tela, mapa, "medicamento", 200, 120)
 itens_mapa = [taco_chao, medicamento_chao]
+largura_mapa =  mapa.tamanho_tile * len(mapa.mapa[0])
+altura_mapa = mapa.tamanho_tile * len(mapa.mapa)
 
 zumbis = []
+projeteis = []
 
 camera.seguir(personagem)
 
@@ -114,6 +120,14 @@ while rodando:
 
         if evento.type == pygame.KEYDOWN:
 
+            if personagem.vivo and evento.key == pygame.K_r and tela_atual == "jogar" and not game_over:
+                if personagem.item_equipado == "Pistola" and personagem.arma is not None:
+                    print("reserva:", personagem.arma.reserva)
+                    print("municao:", personagem.arma.municao)
+                    personagem.arma.recarregar()
+                    print("reserva:", personagem.arma.reserva)
+                    print("municao:", personagem.arma.municao)
+
             if evento.key == pygame.K_i and personagem.vivo and not game_over:
                 inventario_aberto = not inventario_aberto
 
@@ -145,7 +159,6 @@ while rodando:
         elif evento.type == pygame.MOUSEBUTTONDOWN:
 
             if evento.button == 1 and tela_atual == "menu":
-
                 if botao_jogar.collidepoint(evento.pos):
                     tela_atual = "jogar"
                     canal_clique.play(som_clique)
@@ -156,6 +169,28 @@ while rodando:
                 elif botao_sair.collidepoint(evento.pos):
                     canal_clique.play(som_clique)
                     rodando = False
+            elif evento.button == 1 and tela_atual == "jogar":
+                if personagem.item_equipado == "Pistola" and personagem.arma is not None:
+                    if personagem.arma.municao > 0:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        mouse_mapa_x = mouse_x + camera.camera_x
+                        mouse_mapa_y = mouse_y + camera.camera_y
+
+                        dirx = mouse_mapa_x - personagem.retangulo.centerx
+                        diry = mouse_mapa_y - personagem.retangulo.centery
+
+                        comprimento = math.sqrt(dirx ** 2 + diry ** 2)
+                        if comprimento > 0:
+                            dirx = dirx / comprimento
+                            diry = diry / comprimento
+                            if ((personagem.direcao == "direita" and dirx > 0) or (personagem.direcao == "esquerda" and dirx < 0)
+                                or (personagem.direcao == "cima" and diry < 0) or (personagem.direcao == "baixo" and diry > 0)):
+                                bala = Projetil(tela, personagem.retangulo.centerx - 3, personagem.retangulo.centery - 3, 6, 6, 10, dirx, diry)
+                                projeteis.append(bala)
+                                personagem.arma.municao -= 1
+                                print("Disparo detectado")
+                                print("municao restante " + str(personagem.arma.municao))
+
 
     if tela_atual == "menu":
         fundo_menu.atualizar(dt)
@@ -221,6 +256,10 @@ while rodando:
         else:
             item_selecionado = None
         personagem.item_equipado = item_selecionado
+
+        if personagem.item_equipado == "Pistola" and personagem.arma is not None:
+            pass
+
         if personagem.vivo and not game_over:
             personagem.atualizar()
         for item in itens_mapa:
@@ -241,6 +280,16 @@ while rodando:
         camera.atualizar()
 
         mapa.desenhar()
+        if arma_chao is not None:
+            arma_chao.desenhar_chao(tela, camera)
+
+        if arma_chao is not None:
+            if arma_chao.esta_perto(personagem):
+                if pygame.key.get_pressed()[pygame.K_e]:
+                    personagem.inventario.adicionar(arma_chao.nome)
+                    personagem.arma = arma_chao
+                    arma_chao = None
+
 
         for item in itens_mapa:
             if not item.coletado:
@@ -310,6 +359,29 @@ while rodando:
 
             if zumbi.vivo:
                 zumbi.desenhar()
+
+        projeteis_remover = []
+        for projetil in projeteis:
+            projetil.atualizar()
+            if ((projetil.retangulo.left > largura_mapa) or (projetil.retangulo.right < 0) or
+                (projetil.retangulo.bottom < 0) or (projetil.retangulo.top > altura_mapa)):
+                projeteis_remover.append(projetil)
+                continue
+            if mapa.pode_andar(projetil.retangulo) is False:
+                projeteis_remover.append(projetil)
+                continue
+            projetil.desenhar(camera)
+            for zumbi in zumbis:
+                if zumbi.vivo and projetil.retangulo.colliderect(zumbi.retangulo):
+                    zumbi.vida -= 25
+                    projeteis_remover.append(projetil)
+                    if zumbi.vida <= 0:
+                        zumbi.vivo = False
+                    break
+
+        for projetil in projeteis_remover:
+            projeteis.remove(projetil)
+
 
         if personagem.vivo and not game_over:
 
