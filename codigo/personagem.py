@@ -19,8 +19,35 @@ class Personagem:
         self.velocidade = 3
         self.inventario = Inventario()
         self.arma = None
+        self.tamanho_imagem = (38, 74)
+        self.spritesheet_pistola = pygame.image.load('imagens/personagem/zoio arma1.png').convert_alpha()
 
+        self.pistola_parado_baixo = self.spritesheet_pistola.subsurface((350, 10, 200, 355))
+        self.pistola_parado_direita = self.spritesheet_pistola.subsurface((760,10,200,355))
+        self.pistola_parado_esquerda = self.spritesheet_pistola.subsurface((970,10,200,355))
+        self.pistola_parado_cima = self.spritesheet_pistola.subsurface((570,10,200,355))
+
+        self.pistola_andando_direita_1 = self.spritesheet_pistola.subsurface((730, 370, 195, 270))
+        self.pistola_andando_direita_2 = self.spritesheet_pistola.subsurface((1090, 370, 167, 270))
+
+        self.pistola_andando_esquerda_1 = pygame.image.load('imagens/personagem/pistola_andando_esquerda_1_38x74.png').convert_alpha()
+        self.pistola_andando_esquerda_2 = pygame.image.load('imagens/personagem/pistola_andando_esquerda_2_38x74.png').convert_alpha()
+
+        self.pistola_andando_cima_1 = pygame.image.load('imagens/personagem/pistola_andando_cima_1_38x74_ajustada.png').convert_alpha()
+        self.pistola_andando_cima_2 = pygame.image.load('imagens/personagem/pistola_andando_cima_2_38x74_ajustada.png').convert_alpha()
+
+        self.pistola_andando_baixo_1 = pygame.image.load('imagens/personagem/frame2_38x74.png').convert_alpha()
+        self.pistola_andando_baixo_2 = pygame.image.load('imagens/personagem/frame4_38x74.png').convert_alpha()
+
+        self.pistola_parado_baixo_redimensionado = pygame.transform.scale(self.pistola_parado_baixo, self.tamanho_imagem)
+        self.pistola_parado_direita_redimensionado = pygame.transform.scale(self.pistola_parado_direita, self.tamanho_imagem)
+        self.pistola_parado_esquerda_redimensionado = pygame.transform.scale(self.pistola_parado_esquerda, self.tamanho_imagem)
+        self.pistola_parado_cima_redimensionado = pygame.transform.scale(self.pistola_parado_cima , self.tamanho_imagem)
         self.retangulo = pygame.Rect(45, 45, 30, 30)
+
+        self.pistola_andando_direita_1_redimensionado = pygame.transform.scale(self.pistola_andando_direita_1 , self.tamanho_imagem)
+        self.pistola_andando_direita_2_redimensionado = pygame.transform.scale(self.pistola_andando_direita_2, self.tamanho_imagem)
+
 
         self.imagens = [
             pygame.image.load(
@@ -42,7 +69,6 @@ class Personagem:
 
         self.indice_imagem = 0
         self.tempo_anterior = pygame.time.get_ticks()
-        self.tamanho_imagem = (38, 74)
         self.esta_andando = False
         self.velocidade_animacao = 85
         self.indice_animacao = 0
@@ -80,6 +106,11 @@ class Personagem:
         self.angulos_animacao = [0, 1, 1, 1, 0, -1, -1, -1]
         self.alturas_animacao = [0, 1, 2, 1, 0, 1, 2, 1]
         self.lados_animacao = [0, 1, 1, 0, 0, -1, -1, 0]
+
+        self.frames_pistola_andando_direita = [self.pistola_andando_direita_1_redimensionado, self.pistola_andando_direita_2_redimensionado]
+        self.frames_pistola_andando_esquerda = [self.pistola_andando_esquerda_1, self.pistola_andando_esquerda_2]
+        self.frames_pistola_andando_cima = [self.pistola_andando_cima_1, self.pistola_andando_cima_2]
+        self.frames_pistola_andando_baixo = [self.pistola_andando_baixo_1, self.pistola_andando_baixo_2]
 
         self.frames_andando = {
             direcao: [
@@ -154,6 +185,7 @@ class Personagem:
         if self.esta_andando:
             if tempo_atual - self.ultimo_frame >= self.velocidade_animacao:
                 self.indice_animacao = (self.indice_animacao + 1) % len(self.angulos_animacao)
+                self.ultimo_frame = tempo_atual
         else:
             self.indice_animacao = 0
             self.ultimo_frame = tempo_atual
@@ -175,6 +207,29 @@ class Personagem:
         else:
             imagem = self.imagens_parado[self.direcao]
 
+        if self.item_equipado == "Pistola" and self.direcao == "baixo":
+            imagem = self.pistola_parado_baixo_redimensionado
+            if self.esta_andando and self.item_equipado == "Pistola" and self.direcao == "baixo":
+                imagem = self.frames_pistola_andando_baixo[self.indice_animacao % 2]
+
+        elif self.item_equipado == "Pistola" and self.direcao == "direita":
+            imagem = self.pistola_parado_direita_redimensionado
+            if self.esta_andando and self.item_equipado == "Pistola" and self.direcao == "direita":
+                imagem = self.frames_pistola_andando_direita[self.indice_animacao % 2]
+
+        elif self.item_equipado == "Pistola" and self.direcao == "esquerda":
+            imagem = self.pistola_parado_esquerda_redimensionado
+            if self.esta_andando and self.item_equipado == "Pistola" and self.direcao == "esquerda":
+                imagem = self.frames_pistola_andando_esquerda[self.indice_animacao % 2]
+
+        elif self.item_equipado == "Pistola" and self.direcao == "cima":
+            imagem = self.pistola_parado_cima_redimensionado
+            if self.esta_andando and self.item_equipado == "Pistola" and self.direcao == "cima":
+                imagem = self.frames_pistola_andando_cima[self.indice_animacao % 2]
+
+
+
+
         posicao_x = (
             self.retangulo.centerx
             - imagem.get_width() // 2
@@ -187,16 +242,13 @@ class Personagem:
                 - self.mapa.camera.camera_y
         )
 
+        if self.esta_andando:
+            posicao_y -= self.alturas_animacao[self.indice_animacao]
+            posicao_x += self.lados_animacao[self.indice_animacao]
+
         self.tela.blit(imagem, (posicao_x, posicao_y))
 
         retangulo_tela = self.retangulo.copy()
 
         retangulo_tela.x -= self.mapa.camera.camera_x
         retangulo_tela.y -= self.mapa.camera.camera_y
-
-        pygame.draw.rect(
-            self.tela,
-            (255, 0, 0),
-            retangulo_tela,
-            2
-        )

@@ -1,13 +1,11 @@
 
 import pygame
 
-
 class HUD:
 
     def __init__(self, largura, altura):
         self.largura = largura
         self.altura = altura
-
         self.total_slots = 9
         self.tamanho_slot = 52
         self.espaco_slot = 5
@@ -23,14 +21,15 @@ class HUD:
 
         self.fonte = pygame.font.SysFont("comicsans", 20)
         self.fonte_vida = pygame.font.SysFont("comicsans", 20)
-
+        self.fonte_nome_arma = pygame.font.SysFont("Arial", 20, bold=True)
+        self.fonte_municao = pygame.font.SysFont("Arial", 18)
     def atualizar(self, eventos):
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
                 if pygame.K_1 <= evento.key <= pygame.K_9:
                     self.slot_selecionado = evento.key - pygame.K_1
 
-    def desenhar(self, tela, vida, vida_maxima, itens):
+    def desenhar(self, tela, vida, vida_maxima, itens, arma=None):
 
         for i in range(self.total_slots):
             x = self.x_hud + i * (
@@ -75,6 +74,9 @@ class HUD:
             tela.blit(numero, (x + 4, self.y_hud + 2))
             if i < len(itens):
                 item = itens[i]
+                if item == "Pistola" and arma is not None:
+                    tela.blit(arma.icone, (x + 8,self.y_hud + 20))
+
                 texto_item = self.fonte.render(item, True, (255,255,255))
                 tela.blit(texto_item, (x + 5, self.y_hud + 25))
         x_vida = self.x_hud
@@ -137,3 +139,21 @@ class HUD:
             texto_valor,
             (barra_fundo.right + 10, y_vida)
         )
+        if arma is not None and self.slot_selecionado < len(itens) and itens[self.slot_selecionado] == "Pistola":
+            self.desenhar_painel_arma(tela,arma)
+
+    def desenhar_painel_arma(self, tela, arma):
+        largura = 224
+        altura = 88
+        x = self.largura - largura - 20
+        y = self.altura - altura - 20
+        painel = pygame.Surface((largura, altura), pygame.SRCALPHA)
+        painel.fill((18,20,26,165))
+        pygame.draw.rect(painel, (220,220,220,110),painel.get_rect(), width=1, border_radius=8)
+        nome = self.fonte_nome_arma.render(arma.nome, True, (255,255,255))
+        painel.blit(nome, (12,8))
+        municao = self.fonte_municao.render(f"Munição: {arma.municao} / {arma.capacidade}", True, (235,235,235))
+        painel.blit(municao, (12,37))
+        reserva = self.fonte_municao.render(f"Reserva: {arma.reserva}", True, (195,195,195))
+        painel.blit(reserva, (12,61))
+        tela.blit(painel, (x,y))
