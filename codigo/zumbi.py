@@ -240,8 +240,8 @@ class Zumbi:
 
     def mover(self):
         tamanho_tile = self.mapa.tamanho_tile
-        coluna = self.retangulo.x // tamanho_tile
-        linha = self.retangulo.y // tamanho_tile
+        coluna = self.retangulo.centerx // tamanho_tile
+        linha = self.retangulo.centery // tamanho_tile
         coluna_jogador = self.seguir_personagem.retangulo.x // tamanho_tile
         linha_jogador = self.seguir_personagem.retangulo.y // tamanho_tile
 
@@ -291,10 +291,14 @@ class Zumbi:
             proxima_celula = destino
             while pais[proxima_celula] != inicio:
                 proxima_celula = pais[proxima_celula]
+            if proxima_celula == destino:
+                x_alvo = self.seguir_personagem.retangulo.centerx
+                y_alvo = self.seguir_personagem.retangulo.centery
+            else:
+                linha_alvo, coluna_alvo = proxima_celula
+                x_alvo = coluna_alvo * tamanho_tile + tamanho_tile // 2
+                y_alvo = linha_alvo * tamanho_tile + tamanho_tile // 2
 
-            linha_alvo, coluna_alvo = proxima_celula
-            x_alvo = coluna_alvo * tamanho_tile + tamanho_tile // 2
-            y_alvo = linha_alvo * tamanho_tile + tamanho_tile // 2
 
         diferenca_x = x_alvo - self.retangulo.centerx
         diferenca_y = y_alvo - self.retangulo.centery
