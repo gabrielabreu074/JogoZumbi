@@ -48,25 +48,6 @@ class Personagem:
         self.pistola_andando_direita_1_redimensionado = pygame.transform.scale(self.pistola_andando_direita_1 , self.tamanho_imagem)
         self.pistola_andando_direita_2_redimensionado = pygame.transform.scale(self.pistola_andando_direita_2, self.tamanho_imagem)
 
-
-        self.imagens = [
-            pygame.image.load(
-                "imagens/personagem/sprite_0.png"
-            ).convert_alpha(),
-
-            pygame.image.load(
-                "imagens/personagem/sprite_1.png"
-            ).convert_alpha(),
-
-            pygame.image.load(
-                "imagens/personagem/sprite_2.png"
-            ).convert_alpha(),
-
-            pygame.image.load(
-                "imagens/personagem/sprite_3.png"
-            ).convert_alpha()
-        ]
-
         self.indice_imagem = 0
         self.tempo_anterior = pygame.time.get_ticks()
         self.esta_andando = False
